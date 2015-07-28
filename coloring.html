@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>color cow</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<script type="text/javascript" src="Coloring.js"></script>
+<style>
+canvas {width: 800px; height: 500px; border: 1px solid #ccc}
+.colors span {color: #fff}
+</style>
+</head>
+<body>
+<canvas id="cow" width="800" height="500">Обновите браузер</canvas>
+
+<div class="colors">
+    <span id="r" style="background-color: #f00">красный</span>
+    <span id="g" style="background-color: #0f0">зелёный</span>
+    <span id="y" style="background-color: #ff0">жёлтый</span>
+    <span id="b" style="background-color: #00f">синий</span>
+</div>
+
+<script>
+var cow = document.getElementById("cow"),
+    img = cow.getContext("2d"),
+    pic = new Image(),
+    r = document.getElementById("r"),
+    g = document.getElementById("g"),
+    y = document.getElementById("y"),
+    b = document.getElementById("b"),
+    color = "0,0,0,255",
+    clr;
+
+pic.src = "cow.png";
+pic.onload = function(){
+    img.drawImage(pic, 0, 0);
+
+    r.addEventListener("click", function(){
+        color = "255,0,0";
+    });
+    g.addEventListener("click", function(){
+        color = "0,255,0";
+    });
+    y.addEventListener("click", function(){
+        color = "255,255,0";
+    });
+    b.addEventListener("click", function(){
+        color = "0,0,255";
+    });
+
+    var getClickPos = function(event){
+        var x = y = 0,
+            event = event || window.event;
+
+        if (document.attachEvent != null) { // Internet Explorer & Opera
+            x = window.event.clientX + (document.documentElement.scrollLeft ? document.documentElement.scrollLeft : document.body.scrollLeft);
+            y = window.event.clientY + (document.documentElement.scrollTop ? document.documentElement.scrollTop : document.body.scrollTop);
+        } else if (!document.attachEvent && document.addEventListener) { // Gecko
+            x = event.clientX + window.scrollX;
+            y = event.clientY + window.scrollY;
+        }
+
+        x -= cow.offsetLeft;
+        y -= cow.offsetTop;
+
+        return {x: x, y: y};
+    };
+
+    clr = new Coloring(img, 800, 500, "0,0,0");
+
+    cow.addEventListener("click", function(event){
+        var pos = getClickPos(event);
+        clr.fill(pos.x, pos.y, color);
+    });
+}
+</script>
+<br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>1
+<br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>1
+</body>
+</html>
