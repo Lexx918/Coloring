@@ -75,6 +75,9 @@ function Coloring(img, width, height, borderColor)
         }
     },
 
+    /**
+     *  http://www.codeproject.com/Articles/6017/QuickFill-An-efficient-flood-fill-algorithm
+     */
     findChildren = function(line){
         var children = [],
             y,
