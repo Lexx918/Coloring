@@ -1,75 +1,87 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>color cow</title>
+<title>Coloring</title>
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
 <script type="text/javascript" src="Coloring.js"></script>
-<style>
-canvas {width: 800px; height: 500px; border: 1px solid #ccc}
-.colors span {color: #fff}
-</style>
 </head>
 <body>
-<canvas id="cow" width="800" height="500">Обновите браузер</canvas>
-
-<div class="colors">
-    <span id="r" style="background-color: #f00">красный</span>
-    <span id="g" style="background-color: #0f0">зелёный</span>
-    <span id="y" style="background-color: #ff0">жёлтый</span>
-    <span id="b" style="background-color: #00f">синий</span>
-</div>
+<canvas id="picture" width="800" height="500">Обновите браузер</canvas><br>
+<canvas id="palette" width="640" height="256">Обновите браузер</canvas>
 
 <script>
-var cow = document.getElementById("cow"),
-    img = cow.getContext("2d"),
-    pic = new Image(),
-    r = document.getElementById("r"),
-    g = document.getElementById("g"),
-    y = document.getElementById("y"),
-    b = document.getElementById("b"),
-    color = "0,0,0,255",
-    clr;
+var picture = document.getElementById("picture"),
+    picture2d = picture.getContext("2d"),
+    palette = document.getElementById("palette"),
+    palette2d = palette.getContext("2d"),
+    color = "0,0,0";
 
+/**
+ *  http://www.quirksmode.org/js/events_properties.html
+ *  http://www.quirksmode.org/js/findpos.html
+ */
+var getClickPos = function(e, elem){
+    var posx = 0,
+        posy = 0;
+    if (!e) {
+        var e = window.event;
+    }
+    if (e.pageX || e.pageY) {
+        posx = e.pageX;
+        posy = e.pageY;
+    } else if (e.clientX || e.clientY) {
+        posx = e.clientX + document.body.scrollLeft;
+        posy = e.clientY + document.body.scrollTop;
+    }
+
+    var findPosX = function(obj){
+        var curleft = 0;
+        if (obj.offsetParent) {
+            while (obj.offsetParent) {
+                curleft += obj.offsetLeft
+                obj = obj.offsetParent;
+            }
+        } else if (obj.x) {
+            curleft += obj.x;
+        }
+        return curleft;
+    }
+
+    var findPosY = function(obj){
+        var curtop = 0;
+        if (obj.offsetParent) {
+            while (obj.offsetParent) {
+                curtop += obj.offsetTop
+                obj = obj.offsetParent;
+            }
+        } else if (obj.y) {
+            curtop += obj.y;
+        }
+        return curtop;
+    }
+
+    return {x: posx - findPosX(elem), y: posy - findPosY(elem)};
+};
+
+var pic = new Image();
 pic.src = "cow.png";
 pic.onload = function(){
-    img.drawImage(pic, 0, 0);
-
-    r.addEventListener("click", function(){
-        color = "255,0,0";
-    });
-    g.addEventListener("click", function(){
-        color = "0,255,0";
-    });
-    y.addEventListener("click", function(){
-        color = "255,255,0";
-    });
-    b.addEventListener("click", function(){
-        color = "0,0,255";
-    });
-
-    var getClickPos = function(event){
-        var x = y = 0,
-            event = event || window.event;
-
-        if (document.attachEvent != null) { // Internet Explorer & Opera
-            x = window.event.clientX + (document.documentElement.scrollLeft ? document.documentElement.scrollLeft : document.body.scrollLeft);
-            y = window.event.clientY + (document.documentElement.scrollTop ? document.documentElement.scrollTop : document.body.scrollTop);
-        } else if (!document.attachEvent && document.addEventListener) { // Gecko
-            x = event.clientX + window.scrollX;
-            y = event.clientY + window.scrollY;
-        }
-
-        x -= cow.offsetLeft;
-        y -= cow.offsetTop;
-
-        return {x: x, y: y};
-    };
-
-    clr = new Coloring(img, 800, 500, "0,0,0");
-
-    cow.addEventListener("click", function(event){
-        var pos = getClickPos(event);
+    picture2d.drawImage(pic, 0, 0);
+    var clr = new Coloring(picture2d, 800, 500);
+    picture.addEventListener("click", function(event){
+        var pos = getClickPos(event, picture);
         clr.fill(pos.x, pos.y, color);
+    });
+}
+
+var hsv = new Image();
+hsv.src = "hsv.jpg";
+hsv.onload = function(){
+    palette2d.drawImage(hsv, 0, 0);
+    palette.addEventListener("click", function(event){
+        var pos = getClickPos(event, palette);
+        var imageData = palette2d.getImageData(pos.x, pos.y, 1, 1).data;
+        color = ""+imageData[0]+","+imageData[1]+","+imageData[2];
     });
 }
 </script>

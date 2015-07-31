@@ -1,148 +1,137 @@
-function Coloring(img, width, height, borderColor)
+/**
+ *
+ */
+function Coloring(img, width, height)
 {
     var img = img,
         width = width,
         height = height,
-        borderColor = borderColor,
-        imageData,
-        filledLines,
-        bgColor,
-        stack;
+        backgroundColor = [255,255,255],
+        borderColor = [0,0,0];
 
-    init = function(){
-        imageData = img.getImageData(0, 0, width, height).data;
-        filledLines = [];
-        stack = [];
-    },
+    var debug = function(){
+        for (var str, row = 0; row < height; row++) {
+            str = ""+row+": ";
+            for (var i = 0, len = lines[row].length; i < len; i++) {
+                str += "["+lines[row][i][0]+","+lines[row][i][1]+","+lines[row][i][2]+"], ";
+            }
+            console.log(str);
+            str = "";
+        }
+    }
 
-    clear = function(){
-        imageData = null;
-        filledLines = null;
-        stack = null;
-    },
+    /**
+     * Extraction lines
+     *
+     * lines = [
+     *   rowNum => [ [leftX, rightX, claster], [..], [..] ],
+     *   rowNum => [ [leftX, rightX, claster], [..], [..] ],
+     * ]
+     */
+    var lines = [],
+        imageData = img.getImageData(0, 0, width, height).data,
+        canFill = function(x, y){
+            var offset = (y*width + x) * 4,
+                dot = [imageData[offset], imageData[offset + 1], imageData[offset + 2]],
+                error = 220;
+            return ""+dot !== ""+borderColor &&
+                Math.abs(backgroundColor[0] - dot[0]) <= error &&
+                Math.abs(backgroundColor[1] - dot[1]) <= error &&
+                Math.abs(backgroundColor[2] - dot[2]) <= error;
+        };
+    for (var left, row = 0; row < height; row++) {
+        lines[row] = [];
+        left = -1;
+        for (var col = 0; col < width; col++) {
+            if (canFill(col, row)) {
+                if (left === -1) {
+                    left = col;
+                }
+            } else {
+                if (left !== -1) {
+                    lines[row].push([left, col - 1, 0]);
+                    left = -1;
+                }
+            }
+        }
+        if (left !== -1) {
+            lines[row].push([left, width, 0]);
+        }
+    }
+    imageData = null;
 
-    getDot = function(x, y){
-        var offset = (y*width + x) * 4;
-        return [imageData[offset], imageData[offset + 1], imageData[offset + 2]];
-    },
+    // clustering
+    var getChildren = function(left, right, row){
+        if (row < 0 || row >= height) {
+            return;
+        }
 
-    canFill = function(dot){
-        var error = 20;
-        return ""+dot !== ""+borderColor &&
-            Math.abs(bgColor[0] - dot[0]) <= error &&
-            Math.abs(bgColor[1] - dot[1]) <= error &&
-            Math.abs(bgColor[2] - dot[2]) <= error;
-    },
-
-    filled = function(line){
-        for (var i = 0, len = filledLines.length; i < len; i++) {
-            if (line.left  === filledLines[i].left  &&
-                line.right === filledLines[i].right &&
-                line.top   === filledLines[i].top
+        var children = [];
+        // http://www.codeproject.com/Articles/6017/QuickFill-An-efficient-flood-fill-algorithm
+        for (var i = 0, len = lines[row].length; i < len; i++) {
+            if (
+                lines[row][i][2] === 0 &&
+                (
+                    lines[row][i][0] >= left && lines[row][i][0] <= right ||
+                    lines[row][i][1] >= left && lines[row][i][1] <= right ||
+                    lines[row][i][0] < left && lines[row][i][1] >= left ||
+                    lines[row][i][1] > right && lines[row][i][0] <= right
+                )
             ) {
-                return true;
+                children.push([row, i]);
+                left = lines[row][i][1] + 2;
             }
         }
-        return false;
-    },
-
-    /**
-     * @param int x
-     * @param int y
-     * return {left: int, right: int, top: int}
-     */
-    findLine = function(x, y){
-        var left =
-            right = x;
-        if (canFill(getDot(x, y))) {
-            while (left > 0) {
-                left--;
-                if (!canFill(getDot(left, y))) {
-                    left++;
-                    break;
-                }
-            }
-            while (right < width - 1) {
-                right++;
-                if (!canFill(getDot(right, y))) {
-                    right--;
-                    break;
-                }
-            }
-            return {left: left, right: right, top: y};
-        } else {
-            return false;
-        }
-    },
-
-    /**
-     *  http://www.codeproject.com/Articles/6017/QuickFill-An-efficient-flood-fill-algorithm
-     */
-    findChildren = function(line){
-        var children = [],
-            y,
-            left,
-            child,
-            find = function(left, y){
-                if (y < 0 || y > height) {
-                    return;
-                }
-                while (left <= line.right) {
-                    child = findLine(left, y);
-                    if (child === false) {
-                        left++;
-                    } else {
-                        left = child.right + 2;
-                        if (!filled(child)) {
-                            children.push(child);
-                            filledLines.push(child);
-                        }
-                    }
-                }
-            };
-
-        find(line.left, line.top - 1);
-        find(line.left, line.top + 1);
-
         return children;
-    },
+    };
+    for (var child, childrenUp, childrenDown, children = [], claster = row = 0; row < height; row++) {
+        for (var i = 0, len = lines[row].length; i < len; i++) {
+            if (lines[row][i][2] === 0) {
+                claster++;
 
-    tick = function(){
-        var empty = !stack.length;
+                children.push([row, i]);
+                while (child = children.pop()) {
+                    lines[child[0]][child[1]][2] = claster;
 
-        if (line = stack.pop()) {
-            img.fillRect(line.left, line.top, line.right - line.left + 1, 1);
+                    childrenUp   = getChildren(lines[child[0]][child[1]][0], lines[child[0]][child[1]][1], child[0] - 1);
+                    childrenDown = getChildren(lines[child[0]][child[1]][0], lines[child[0]][child[1]][1], child[0] + 1);
 
-            var children = findChildren(line);
-            var len = children.length;
-            if (len) {
-                for (var i = 0; i < len; i++) {
-                    stack.push(children[i]);
+                    if (childrenUp)   children = children.concat(childrenUp);
+                    if (childrenDown) children = children.concat(childrenDown);
                 }
             }
-        }
-
-        if (empty) {
-            clear();
-        } else {
-            //setTimeout(tick, 0);
-            tick();
         }
     };
 
     this.fill = function(x, y, color){
-        init();
+        var row = y,
+            left = x;
 
-        bgColor = getDot(x, y);
-        img.fillStyle = "rgb("+color+")";
-
-        var startLine = findLine(x, y);
-        if (startLine === false) {
+        if (row < 0 || row >= height) {
             return;
         }
-        stack.push(startLine);
 
-        tick();
+        for (var claster = i = 0, len = lines[row].length; i < len; i++) {
+            if (lines[row][i][0] <= left && lines[row][i][1] >= left) {
+                claster = lines[row][i][2];
+                break;
+            }
+        }
+
+        if (!claster) {
+            return;
+        }
+
+        img.fillStyle = "rgb("+color+")";
+
+        // @TODO optimize!!!
+        for (var row = 0; row < height; row++) {
+            for (var i = 0, len = lines[row].length; i < len; i++) {
+                if (lines[row][i][2] === claster) {
+                    img.fillRect(lines[row][i][0], row, lines[row][i][1] - lines[row][i][0] + 1, 1);
+                }
+            }
+        }
     }
 
     /* debug */
