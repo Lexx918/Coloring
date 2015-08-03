@@ -6,6 +6,7 @@
 <script type="text/javascript" src="Coloring.js"></script>
 </head>
 <body>
+Загрузка: <span id="progress"></span>%<br>
 <canvas id="picture" width="800" height="500">Обновите браузер</canvas><br>
 <canvas id="palette" width="640" height="256">Обновите браузер</canvas>
 
@@ -14,7 +15,8 @@ var picture = document.getElementById("picture"),
     picture2d = picture.getContext("2d"),
     palette = document.getElementById("palette"),
     palette2d = palette.getContext("2d"),
-    color = "0,0,0";
+    color = "0,0,0",
+    progress = document.getElementById("progress");
 
 /**
  *  http://www.quirksmode.org/js/events_properties.html
@@ -67,7 +69,9 @@ var pic = new Image();
 pic.src = "cow.png";
 pic.onload = function(){
     picture2d.drawImage(pic, 0, 0);
-    var clr = new Coloring(picture2d, 800, 500);
+    var clr = new Coloring(picture2d, 800, 500, function(p){
+        progress.innerHTML = Math.round(p);
+    });
     picture.addEventListener("click", function(event){
         var pos = getClickPos(event, picture);
         clr.fill(pos.x, pos.y, color);
